@@ -101,7 +101,7 @@ Cả hai ghi vào **cùng một sổ cái**, nên dashboard thấy hết bất k
 | | Cấp 2 · Logic văn bản | Số tiền bằng số – bằng chữ; số tiền, ngày tháng, tên đơn vị, MST, số hợp đồng, số hiệu văn bản khớp nhau giữa tờ trình, biên bản, hóa đơn, hợp đồng, bảo lãnh; thứ tự ngày hợp lý |
 | | Cấp 3 · Lỗi hay gặp | Soát theo **trí nhớ**: từng mục "lỗi hay gặp" và "sếp hay xem" |
 | Quy trình – Quy định (nâu) | Theo dõi văn bản mới | Đọc văn bản mới, tóm tắt điểm thay đổi so với quy trình hiện hành |
-| | Kiểm chứng viện dẫn | Kiểm tra số hiệu, điều khoản, hiệu lực văn bản được viện dẫn trong hồ sơ |
+| | Tra cứu văn bản (kiểm chứng viện dẫn) | Kiểm tra số hiệu, điều khoản, hiệu lực văn bản được viện dẫn. Tra **web app tra cứu văn bản (Apps Script) của đại ca** trước; không có kết quả thì tra Internet. Địa chỉ và khóa của web app để trong `.env`, không commit |
 | Công đoàn (xanh ô liu) | Đọc sổ cái | Đọc file Excel sổ cái, lấy các dòng thu / chi trong kỳ |
 | | Cập nhật báo cáo | Ghi tiếp thu / chi vào báo cáo thu chi |
 | Tổng hợp (xám đá) | **Tổng hợp** | Gom kết quả, điền mẫu (tờ trình, báo cáo thẩm tra quyết toán, báo cáo…) có trong thư mục, lập phiếu soát xét, lưu thư mục kết quả, báo Telegram |
@@ -124,9 +124,11 @@ Agent con được giao tiếp cho agent cháu nếu cần (Claude Code cho phé
 
 ### 6.4 Một việc từ đầu đến cuối
 
+0. **Phạm vi đọc:** agent được **đọc toàn bộ thư mục đã chọn và mọi thư mục con bên trong** (chỉ đọc). Thiếu thông tin (hợp đồng, lũy kế, tạm ứng…) thì tìm trong **trí nhớ gần đây** (kết quả các việc trước của cùng dự án lưu trong thư mục dữ liệu); không có thì **hỏi đại ca bổ sung**.
 1. **Đầu vào:** đường dẫn một thư mục công việc + loại việc + ghi chú (không bắt buộc). Từ dashboard: dán đường dẫn, bấm "Duyệt…" (mở hộp chọn thư mục của Windows phía server), hoặc chọn trong danh sách **thư mục đang làm dở gần đây** (các thư mục đã giao việc trước đó, kèm trạng thái dừng ở đâu). Từ Telegram: nhắn lệnh có đường dẫn.
 2. **Xem nhanh:** Giao việc đếm file theo loại, tìm file mẫu trong thư mục (tờ trình, báo cáo thẩm tra quyết toán, mẫu báo cáo, file báo cáo công đoàn), báo trước khi chạy.
-3. **Mẫu:** có mẫu trong thư mục → dùng. Không có → **dừng hỏi** đại ca: dùng mẫu gần nhất cùng loại (từ việc trước) hay đại ca chỉ mẫu khác. Danh mục hồ sơ chuẩn (thanh toán / quyết toán) là cố định, lưu trong repo, không cần tìm trong thư mục.
+3. **Mẫu:** mẫu thường gặp là **mẫu list hồ sơ, mẫu báo cáo thẩm tra quyết toán, mẫu báo cáo**; đại ca để sẵn trong thư mục cần làm. Mẫu có thể là file đợt trước đã điền: agent **tạo file mới giống hệt định dạng, xóa dữ liệu cũ, nhập dữ liệu mới** (không sửa file mẫu). Không thấy mẫu → **dừng hỏi** đại ca: dùng mẫu gần nhất cùng loại (từ việc trước) hay đại ca chỉ mẫu khác. Danh mục hồ sơ chuẩn (thanh toán / quyết toán) là cố định, lưu trong repo.
+   - **List hồ sơ cộng dồn theo dự án:** cùng một dự án thì list hồ sơ cứ cộng dồn lên qua các đợt. Hệ thống giữ bản list cộng dồn của từng dự án trong thư mục dữ liệu (nhận dạng dự án theo số hợp đồng / tên thư mục; không chắc thì hỏi), mỗi lần chạy thêm dòng mới rồi xuất bản mới nhất ra thư mục kết quả.
 4. **Chạy:** giao việc theo kế hoạch mẫu; mọi lần giao / bắt đầu / tiến độ / phát hiện / câu hỏi / xong đều vào sổ cái.
 5. **Câu hỏi cần quyết:** agent ghi câu hỏi (kèm 2 lựa chọn gợi ý) vào sổ cái và báo Telegram; **việc khác không bị chặn**. Đại ca trả lời trên dashboard hoặc Telegram. Câu trả lời được ghi vào sổ cái và vào "Mới học" của trí nhớ (nếu là quy tắc dùng lại được).
 6. **Kết quả:** Tổng hợp lưu vào **thư mục con `KetQua_Agent\<ngày>_<mã việc>\`** nằm ngay trong thư mục công việc (giữ kết quả cạnh hồ sơ). Đây là nơi duy nhất agent được ghi. File gốc không bị đụng tới; với báo cáo công đoàn, ghi ra **bản mới** trong thư mục kết quả chứ không sửa file gốc.
@@ -146,7 +148,9 @@ Mã việc: `HS-` (thanh toán / quyết toán), `VB-` (văn bản), `CD-` (côn
 
 ### 6.6 Dashboard
 
-Server Python chỉ lắng nghe `127.0.0.1` (cổng mặc định 8765), phục vụ một trang web, cập nhật gần thời gian thực (thăm dò vài giây hoặc SSE — builder chọn). Bố cục theo bản mẫu:
+Server Python chỉ lắng nghe `127.0.0.1` (cổng mặc định 8765), phục vụ một trang web, cập nhật gần thời gian thực (thăm dò vài giây hoặc SSE — builder chọn).
+
+**Hướng giao diện đang xem xét:** đại ca muốn giao diện giống **văn phòng thật nhìn chéo 2.5D (isometric)**: mỗi phòng một khu sàn màu riêng, mỗi agent ngồi ở bàn, bong bóng trạng thái trên đầu, tờ giấy bay khi giao việc / nộp kết quả, bấm vào nhân viên xem chi tiết ở bảng bên. Bản mẫu: artboard "Phương án 2.5D" trong link ở đầu tài liệu (bản cũ "Dashboard" vẫn giữ để so sánh). Các khối dưới đây giữ nguyên chức năng, chỉ thay "sơ đồ văn phòng" bằng cảnh 2.5D. Bố cục chức năng:
 
 1. **Trên cùng:** thanh **Token 5 giờ** và **Token tuần** (mục 6.9), trạng thái Claude Code / Telegram.
 2. Tiêu đề, 4 ô chỉ số: việc đang chạy, chờ đại ca quyết, việc đã xong, phát hiện cần xử lý.
@@ -160,6 +164,7 @@ Server khởi chạy việc bằng `claude -p` với: thư mục làm việc là
 ### 6.7 Telegram
 
 - **Nhận lệnh:** qua kênh Telegram của Claude Code đã kết nối, vào phiên Claude Code tương tác (đóng vai Giao việc). Phiên này phải đang mở trên laptop.
+- **Nội dung tin: chỉ báo ngắn gọn kết quả thực hiện** (ví dụ "Xong HS-0317: 5 phát hiện, kết quả đã lưu", "HS-0317 chờ đại ca quyết 1 câu"). Không gửi nội dung chi tiết hồ sơ; đại ca xem và xử lý chi tiết trong Claude app / dashboard.
 - **Gửi thông báo** (xong, lỗi, cần quyết) cho cả việc chạy nền: dùng một công cụ Python gửi tin qua Telegram Bot API (token trong `.env`), vì việc chạy `claude -p` không có kênh. Dùng cùng bot với kênh hay bot riêng: builder chọn sau khi kiểm tra plugin trên máy.
 - Trả lời câu hỏi qua Telegram phải ghi được vào sổ cái như trả lời trên dashboard.
 - Bot quản lý công việc (Apps Script + Gemini) của đại ca là **bot khác**, giữ nguyên.
@@ -224,11 +229,14 @@ Thử nghiệm bằng một bộ hồ sơ mẫu đã xóa thông tin nhạy cả
 - **PDF scan:** mặc định để Claude đọc trang dạng ảnh khi không trích được chữ; OCR cục bộ (Tesseract tiếng Việt) là tùy chọn làm sau nếu tốn token.
 - **Skill có sẵn** (`soat-xet-ho-so-thanh-toan`, `kiem-chung-van-ban`): chỉ dùng phần kiến thức (danh mục, cách tra cứu); không dùng nguyên các bước ghi đè file gốc hoặc tự kết luận "đạt" vì trái mục 2.
 
-## 11. Câu hỏi còn mở (chờ đại ca)
+## 11. Đại ca đã trả lời (24/11)
 
-1. Agent có được **đọc** thư mục cha / các thư mục đợt trước (hợp đồng gốc, lũy kế, tạm ứng) không? Với file **cộng dồn** (list hồ sơ thanh – quyết toán theo hợp đồng, báo cáo thu chi công đoàn cả năm), agent ghi bản mới vào thư mục kết quả hay được cập nhật thẳng file gốc sau khi sao lưu và hỏi xác nhận?
-2. Mẫu để trong thư mục là **mẫu trống** hay **file đợt trước đã điền** (cần thay số liệu)? Phiếu soát xét / phiếu đánh giá hồ sơ có mẫu cố định không?
-3. Dữ liệu được ra ngoài laptop đến đâu: tin Telegram có được ghi nội dung phát hiện ngắn (tên chứng từ, số tiền) không; agent kiểm chứng có được tra web công khai (vbpl.vn, thuvienphapluat) bằng số hiệu văn bản không?
+- Phạm vi đọc: toàn quyền đọc thư mục đã chọn và thư mục con; thiếu thông tin thì tìm trong trí nhớ gần đây, không có thì hỏi (mục 6.4 bước 0).
+- List hồ sơ: cùng một dự án thì cộng dồn dần (mục 6.4 bước 3).
+- Mẫu: mẫu list hồ sơ, mẫu báo cáo thẩm tra quyết toán, mẫu báo cáo; tạo file mới giống mẫu, xóa dữ liệu cũ, nhập dữ liệu mới.
+- Telegram: chỉ báo ngắn gọn kết quả; xử lý chi tiết trong Claude app.
+- Tra cứu văn bản: dùng web app tra cứu của đại ca, không có thì tra Internet.
+- Giao diện: chuyển sang phong cách văn phòng 2.5D (đang duyệt bản mẫu).
 
 ## 12. Để builder quyết
 
