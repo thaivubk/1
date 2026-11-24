@@ -150,7 +150,7 @@ Mã việc: `HS-` (thanh toán / quyết toán), `VB-` (văn bản), `CD-` (côn
 
 Server Python chỉ lắng nghe `127.0.0.1` (cổng mặc định 8765), phục vụ một trang web, cập nhật gần thời gian thực (thăm dò vài giây hoặc SSE — builder chọn).
 
-**Hướng giao diện đang xem xét:** đại ca muốn giao diện giống **văn phòng thật nhìn chéo 2.5D (isometric)**: mỗi phòng một khu sàn màu riêng, mỗi agent ngồi ở bàn, bong bóng trạng thái trên đầu, tờ giấy bay khi giao việc / nộp kết quả, bấm vào nhân viên xem chi tiết ở bảng bên. Bản mẫu: artboard "Phương án 2.5D" trong link ở đầu tài liệu (bản cũ "Dashboard" vẫn giữ để so sánh). Các khối dưới đây giữ nguyên chức năng, chỉ thay "sơ đồ văn phòng" bằng cảnh 2.5D. Bố cục chức năng:
+**Hướng giao diện đã chọn (24/11):** **văn phòng 3D thật** (vẽ bằng Three.js), **góc nhìn cố định** (không xoay / zoom / đi bộ), mỗi phòng một khu sàn màu riêng, tường, cửa sổ, cây xanh bên ngoài; **agent là robot tròn dễ thương** màu theo phòng (Soát xét đeo kính, Giao việc đeo tai nghe, Tổng hợp đeo cà vạt), đèn ăng-ten theo trạng thái, tay gõ phím khi đang làm, giơ tay khi chờ đại ca; nhãn tên nổi trên đầu; tờ giấy 3D bay khi giao việc / nộp kết quả; bấm robot xem chi tiết ở bảng bên; tab phòng làm nổi phòng được chọn. Có thêm chế độ xem **Bản đồ điều phối**: Agent Giao việc ở giữa, 12 thẻ agent xếp quanh, đường nét đứt chạy khi đang giao việc. Thanh điều hướng trái. Bản mẫu: https://claude.ai/artifact/XKwJt2V25QeSftmEaw5TFY (dùng làm nền cho giao diện bản thật). Bố cục chức năng:
 
 1. **Trên cùng:** thanh **Token 5 giờ** và **Token tuần** (mục 6.9), trạng thái Claude Code / Telegram.
 2. Tiêu đề, 4 ô chỉ số: việc đang chạy, chờ đại ca quyết, việc đã xong, phát hiện cần xử lý.
