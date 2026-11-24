@@ -216,6 +216,20 @@ Thử nghiệm bằng một bộ hồ sơ mẫu đã xóa thông tin nhạy cả
 - Quy trình hiện hành của Ban (file) để agent văn bản so sánh.
 - Triển khai Apps Script web app chỉ đọc (builder viết mã, đại ca dán và triển khai).
 
-## 10. Để builder quyết
+## 10. Các điểm Claude tự chốt (đại ca xem lại)
+
+- **Danh mục hồ sơ chuẩn:** một danh mục cố định cho thanh toán, một cho quyết toán (đại ca xác nhận các dự án đều giống nhau), chia theo giai đoạn (tạm ứng, thanh toán từng đợt, đợt cuối / quyết toán). Điều khoản thanh toán của hợp đồng nếu đòi thêm hồ sơ thì **cộng thêm** vào danh mục; vì vậy Liệt kê hồ sơ đọc điều khoản thanh toán của hợp đồng trước.
+- **Giới hạn dùng gói:** mặc định chạy song song 2 việc; nếu có số liệu token và mức 5 giờ vượt 80% thì tạm giữ việc mới trong hàng chờ và báo đại ca. Đại ca nên hỏi quản trị xem tài khoản có bật "dùng vượt hạn mức có tính phí" không.
+- **Cài đặt trên laptop:** builder không có quyền vào laptop, nên kế hoạch phải kèm một script kiểm tra môi trường (Claude Code, Python, kênh Telegram, số liệu token, skill có sẵn, chính sách quyền) và hướng dẫn cài từng bước để đại ca chạy; mọi chỗ "kiểm tra trên laptop" phải có phương án dự phòng bật / tắt trong cấu hình.
+- **PDF scan:** mặc định để Claude đọc trang dạng ảnh khi không trích được chữ; OCR cục bộ (Tesseract tiếng Việt) là tùy chọn làm sau nếu tốn token.
+- **Skill có sẵn** (`soat-xet-ho-so-thanh-toan`, `kiem-chung-van-ban`): chỉ dùng phần kiến thức (danh mục, cách tra cứu); không dùng nguyên các bước ghi đè file gốc hoặc tự kết luận "đạt" vì trái mục 2.
+
+## 11. Câu hỏi còn mở (chờ đại ca)
+
+1. Agent có được **đọc** thư mục cha / các thư mục đợt trước (hợp đồng gốc, lũy kế, tạm ứng) không? Với file **cộng dồn** (list hồ sơ thanh – quyết toán theo hợp đồng, báo cáo thu chi công đoàn cả năm), agent ghi bản mới vào thư mục kết quả hay được cập nhật thẳng file gốc sau khi sao lưu và hỏi xác nhận?
+2. Mẫu để trong thư mục là **mẫu trống** hay **file đợt trước đã điền** (cần thay số liệu)? Phiếu soát xét / phiếu đánh giá hồ sơ có mẫu cố định không?
+3. Dữ liệu được ra ngoài laptop đến đâu: tin Telegram có được ghi nội dung phát hiện ngắn (tên chứng từ, số tiền) không; agent kiểm chứng có được tra web công khai (vbpl.vn, thuvienphapluat) bằng số hiệu văn bản không?
+
+## 12. Để builder quyết
 
 Cấu trúc thư mục cụ thể, thư viện Python, cách cập nhật thời gian thực, định dạng chi tiết sự kiện sổ cái, cách nối hook với mã việc, cơ chế tiếp tục việc sau câu trả lời, model cho từng agent, giới hạn song song, cách mở hộp chọn thư mục, tên file kết quả.
