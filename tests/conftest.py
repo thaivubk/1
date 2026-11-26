@@ -1,4 +1,6 @@
+import socket
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -39,3 +41,28 @@ def make_folder(base: Path, name="Đợt 4") -> Path:
     f.mkdir(parents=True)
     (f / "To trình.pdf").write_bytes(b"%PDF-1.4")
     return f
+
+
+def _free_port() -> int:
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+@pytest.fixture
+def live(cfg_fake):
+    import uvicorn
+
+    from vpak.runner import JobRunner
+    from vpak.server import create_app
+
+    port = _free_port()
+    runner = JobRunner(cfg_fake)
+    app = create_app(cfg_fake, runner, background=True, opener=lambda p: None, browse=lambda: None)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error"))
+    t = threading.Thread(target=server.run, daemon=True)
+    t.start()
+    wait_until(lambda: server.started)
+    yield f"http://127.0.0.1:{port}", runner, cfg_fake
+    server.should_exit = True
+    t.join(5)

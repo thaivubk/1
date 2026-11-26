@@ -1,38 +1,11 @@
 import glob
-import socket
-import threading
-import time
-
 import pytest
 
 pytest.importorskip("playwright")
-import uvicorn  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 from conftest import events_of, make_folder, wait_until  # noqa: E402
 from vpak.ledger import append_event  # noqa: E402
-from vpak.runner import JobRunner  # noqa: E402
-from vpak.server import create_app  # noqa: E402
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-@pytest.fixture
-def live(cfg_fake):
-    port = _free_port()
-    runner = JobRunner(cfg_fake)
-    app = create_app(cfg_fake, runner, background=True, opener=lambda p: None, browse=lambda: None)
-    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error"))
-    t = threading.Thread(target=server.run, daemon=True)
-    t.start()
-    wait_until(lambda: server.started)
-    yield f"http://127.0.0.1:{port}", runner, cfg_fake
-    server.should_exit = True
-    t.join(5)
 
 
 @pytest.fixture
