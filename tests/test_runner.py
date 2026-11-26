@@ -75,7 +75,7 @@ def test_claude_fails(tmp_path, cfg_fake, monkeypatch):
     job = r.submit(str(make_folder(tmp_path)))
     run_to_end(r, cfg_fake, job)
     reason = events_of(cfg_fake, job, "error")[-1]["reason"]
-    assert reason.startswith("Claude Code báo lỗi:") and "Credit balance is too low" in reason
+    assert "hết hạn mức" in reason and "Credit balance is too low" in reason
     assert build_state(read_events(cfg_fake.data_dir))["jobs"][0]["status"] == "error"
 
 
@@ -102,7 +102,8 @@ def test_answer_resumes_session(tmp_path, cfg_fake, monkeypatch):
     run_to_end(r, cfg_fake, job, n=2)
     args = json.loads(out.read_text(encoding="utf-8"))["args"]
     assert args[args.index("--resume") + 1] == "fake-1"
-    assert qid in args[args.index("-p") + 1] and "Có" in args[args.index("-p") + 1]
+    stdin = json.loads(out.read_text(encoding="utf-8"))["stdin"]
+    assert qid in stdin and "Có" in stdin
 
 
 def test_answer_unknown_question(cfg):
@@ -144,3 +145,42 @@ def test_recover_requeues_unstarted(tmp_path, cfg_fake):
     assert r.recover() == 1
     run_to_end(r, cfg_fake, job)
     assert events_of(cfg_fake, job, "job_done")
+
+
+def test_prompt_sent_on_stdin_not_args(tmp_path, cfg_fake, monkeypatch):  # Final #1
+    out = tmp_path / "env.json"; monkeypatch.setenv("FAKE_ENV_OUT", str(out))
+    r = JobRunner(cfg_fake); job = r.submit(str(make_folder(tmp_path))); run_to_end(r, cfg_fake, job)
+    d = json.loads(out.read_text(encoding="utf-8"))
+    assert all("\n" not in a for a in d["args"]) and "QUY TẮC BẮT BUỘC" in d["stdin"]
+
+
+def test_allowed_tools_windows_path():  # Final #2
+    tools = allowed_tools(r"D:\Công Việc\Đợt 4", platform="win32")
+    assert "Write(//d/Công Việc/Đợt 4/KetQua_Agent/**)" in tools
+
+
+def test_agent_error_not_masked_by_done(tmp_path, cfg_fake, monkeypatch):  # Final #3
+    monkeypatch.setenv("FAKE_LOI", "1")
+    r = JobRunner(cfg_fake); job = r.submit(str(make_folder(tmp_path))); run_to_end(r, cfg_fake, job)
+    assert not events_of(cfg_fake, job, "job_done")
+    assert build_state(read_events(cfg_fake.data_dir))["jobs"][0]["status"] == "error"
+
+
+def test_start_failure_records_error(tmp_path, cfg_fake):  # Final #4
+    import shutil
+    folder = make_folder(tmp_path); r = JobRunner(cfg_fake); job = r.submit(str(folder))
+    shutil.rmtree(folder); r.pump()
+    assert events_of(cfg_fake, job, "error")
+
+
+def test_recover_live_orphan_marked_lost(tmp_path, cfg):  # Final #5
+    r = JobRunner(cfg); job = r.submit(str(make_folder(tmp_path)))
+    append_event(cfg.data_dir, "job_started", job=job, pid=os.getpid())
+    (cfg.data_dir / "jobs" / f"{job}.pid").write_text(str(os.getpid()), encoding="utf-8")
+    assert JobRunner(cfg).recover() == 1
+
+
+def test_login_error_in_vietnamese(tmp_path, cfg_fake, monkeypatch):  # Final #11
+    monkeypatch.setenv("FAKE_FAIL", "1"); monkeypatch.setenv("FAKE_ERR", "Invalid API key · Please run /login")
+    r = JobRunner(cfg_fake); job = r.submit(str(make_folder(tmp_path))); run_to_end(r, cfg_fake, job)
+    assert "Claude chưa đăng nhập" in events_of(cfg_fake, job, "error")[-1]["reason"]

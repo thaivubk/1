@@ -101,7 +101,7 @@ def build_state(events: list[dict], now: datetime | None = None) -> dict:
                     t["file"] = ev["file"]
                 log(t, ev, f"Hoàn thành, có {t['finds']} phát hiện" if t["finds"] else "Hoàn thành")
                 add_feed(ev, agent_color(t["to"]), f"{_name(t['to'])} xong việc {jid}")
-        elif typ == "job_done" and job is not None:
+        elif typ == "job_done" and job is not None and job["status"] != "error":
             job["status"] = "done"
             add_feed(ev, "#23804D", f"Xong {jid}")
         elif typ == "error" and job is not None:

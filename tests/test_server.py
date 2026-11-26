@@ -75,3 +75,14 @@ def test_index_served(setup):
 def test_state_has_memory(setup):
     mem = setup[0].get("/api/state").json()["memory"]
     assert len(mem["loi"]) >= 6 and len(mem["sep"]) >= 4 and isinstance(mem["moi"], list)
+
+
+def test_foreign_host_rejected(setup):  # Final #10
+    assert setup[0].get("/api/state", headers={"host": "evil.example"}).status_code == 400
+
+
+def test_memory_learned_from_data_dir(setup):  # Final #8
+    c, runner, cfg, _ = setup
+    (cfg.data_dir / "tri-nho").mkdir(exist_ok=True)
+    (cfg.data_dir / "tri-nho" / "moi-hoc.md").write_text("- 26/11 HS-0001: chấp nhận bản scan\n", encoding="utf-8")
+    assert c.get("/api/state").json()["memory"]["moi"] == ["26/11 HS-0001: chấp nhận bản scan"]

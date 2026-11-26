@@ -36,7 +36,7 @@ File `.env` chứa khóa bí mật, không gửi cho ai và không đưa lên Gi
 
 - Khung **Cần đại ca quyết** trên dashboard hiện câu hỏi và các nút trả lời.
 - Hoặc nhắn Telegram "có gì cần quyết", rồi trả lời theo mã câu hỏi.
-- Quyết định nào dùng lại được sẽ được ghi vào `tri-nho/moi-hoc.md`.
+- Quyết định nào dùng lại được sẽ được ghi vào `tri-nho\moi-hoc.md` trong thư mục dữ liệu (`%USERPROFILE%\VanPhongAgent_data`), không đưa lên GitHub.
 
 ## 6. Sửa trí nhớ và danh mục
 

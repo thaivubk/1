@@ -9,7 +9,7 @@ import threading
 import unicodedata
 from collections import deque
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .config import Config
 from .ledger import _lock, append_event, read_events
@@ -37,17 +37,47 @@ def guess_kind(folder: Path) -> str:
     return "tt"
 
 
-def allowed_tools(folder: str) -> list[str]:
-    base = "//" + Path(folder).resolve().as_posix().lstrip("/")
-    return ["Read", "Glob", "Grep", "Task", "WebSearch", "WebFetch",
-            "Bash(python -m vpak.ghi_so:*)", "Bash(python -m vpak.tools:*)",
-            f"Write({base}/{RESULT_DIR}/**)", f"Edit({base}/{RESULT_DIR}/**)"]
+def _rule_path(path: str, platform: str) -> str:
+    if platform == "win32":
+        w = PureWindowsPath(path)
+        drive = w.drive.rstrip(":").lower()
+        return "//" + drive + "/" + "/".join(w.parts[1:])
+    return "//" + Path(path).resolve().as_posix().lstrip("/")
 
 
-def build_prompt(job: str, folder: str, kind: str, note: str, out_dir: str, repo_dir: Path | None = None) -> str:
+def allowed_tools(folder: str, platform: str = sys.platform, data_dir: str | None = None) -> list[str]:
+    base = _rule_path(folder, platform)
+    tools = ["Read", "Glob", "Grep", "Task", "Agent", "WebSearch", "WebFetch",
+             "Bash(python -m vpak.ghi_so:*)", "Bash(python -m vpak.tools:*)",
+             f"Write({base}/{RESULT_DIR}/**)", f"Edit({base}/{RESULT_DIR}/**)"]
+    if data_dir:
+        mem = _rule_path(str(Path(data_dir) / "tri-nho"), platform)
+        tools += [f"Write({mem}/**)", f"Edit({mem}/**)"]
+    return tools
+
+
+ERROR_VN = [("/login", "Claude chưa đăng nhập. Đại ca chạy claude rồi gõ /login."),
+            ("invalid api key", "Claude chưa đăng nhập. Đại ca chạy claude rồi gõ /login."),
+            ("usage limit", "Hết hạn mức sử dụng Claude, thử lại sau khi hạn mức được đặt lại."),
+            ("rate limit", "Hết hạn mức sử dụng Claude, thử lại sau khi hạn mức được đặt lại."),
+            ("credit balance", "Tài khoản Claude hết hạn mức hoặc hết tín dụng.")]
+
+
+def vn_reason(detail: str) -> str:
+    low = detail.lower()
+    for key, msg in ERROR_VN:
+        if key in low:
+            return f"{msg} (Claude Code báo: {detail})"[:300]
+    return f"Claude Code báo lỗi: {detail}"[:300]
+
+
+def build_prompt(job: str, folder: str, kind: str, note: str, out_dir: str, repo_dir: Path | None = None,
+                 data_dir: str | None = None) -> str:
     repo = repo_dir or Path(__file__).resolve().parent.parent
     text = (repo / "prompts" / "giao_viec.md").read_text(encoding="utf-8")
-    for key, value in {"job": job, "folder": folder, "kind": kind, "note": note or "(không có)", "out_dir": out_dir}.items():
+    data = data_dir or os.environ.get("VPAK_DATA", "") or str(Path.home() / "VanPhongAgent_data")
+    for key, value in {"job": job, "folder": folder, "kind": kind, "note": note or "(không có)", "out_dir": out_dir,
+                       "data_dir": data}.items():
         text = text.replace("{" + key + "}", value)
     return text
 
@@ -117,27 +147,42 @@ class JobRunner:
 
     def _start(self, item: dict) -> None:
         job, folder = item["job"], item["folder"]
+        try:
+            self._launch(item)
+        except Exception as e:  # mọi lỗi trước khi chạy được Claude đều phải thành sự kiện lỗi
+            append_event(self.cfg.data_dir, "error", job=job, reason=f"Không bắt đầu được việc: {e}"[:300])
+
+    def _launch(self, item: dict) -> None:
+        job, folder = item["job"], item["folder"]
+        if not Path(folder).is_dir():
+            raise FileNotFoundError(f"không còn thư mục {folder}")
         if item.get("resume"):
-            args = ["-p", item["message"], "--resume", item["resume"]]
+            prompt, extra = item["message"], ["--resume", item["resume"]]
         else:
             out_dir = Path(folder) / RESULT_DIR / f"{date.today():%Y-%m-%d}_{job}"
             out_dir.mkdir(parents=True, exist_ok=True)
-            args = ["-p", build_prompt(job, folder, item["kind"], item.get("note", ""), str(out_dir), self.cfg.repo_dir)]
-        cmd = self.cfg.claude_cmd + args + ["--output-format", "json", "--add-dir", folder, "--allowedTools", *allowed_tools(folder)]
+            prompt = build_prompt(job, folder, item["kind"], item.get("note", ""), str(out_dir), self.cfg.repo_dir,
+                                  str(self.cfg.data_dir))
+            extra = []
+        prompt_path = self.jobs_dir / f"{job}.prompt.txt"
+        prompt_path.write_text(prompt, encoding="utf-8")
+        cmd = self.cfg.claude_cmd + ["-p"] + extra + ["--output-format", "json", "--add-dir", folder,
+                                                     "--allowedTools", *allowed_tools(folder, data_dir=str(self.cfg.data_dir))]
         env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
-        env.update(VPAK_JOB_ID=job, VPAK_DATA=str(self.cfg.data_dir), PYTHONIOENCODING="utf-8")
+        env.update(VPAK_JOB_ID=job, VPAK_DATA=str(self.cfg.data_dir), VPAK_JOB_FOLDER=folder, PYTHONIOENCODING="utf-8")
         out_path, err_path = self.jobs_dir / f"{job}.out.json", self.jobs_dir / f"{job}.err.txt"
-        out, err = open(out_path, "wb"), open(err_path, "wb")
+        out, err, inp = open(out_path, "wb"), open(err_path, "wb"), open(prompt_path, "rb")
         try:
-            proc = subprocess.Popen(cmd, cwd=self.cfg.repo_dir, env=env, stdout=out, stderr=err, stdin=subprocess.DEVNULL)
+            proc = subprocess.Popen(cmd, cwd=self.cfg.repo_dir, env=env, stdout=out, stderr=err, stdin=inp)
         except FileNotFoundError:
-            out.close(); err.close()
+            out.close(); err.close(); inp.close()
             append_event(self.cfg.data_dir, "error", job=job, reason="Không tìm thấy Claude Code trên máy")
             return
         except OSError as e:
-            out.close(); err.close()
+            out.close(); err.close(); inp.close()
             append_event(self.cfg.data_dir, "error", job=job, reason=f"Không chạy được Claude Code: {e}")
             return
+        inp.close()
         (self.jobs_dir / f"{job}.pid").write_text(str(proc.pid), encoding="utf-8")
         append_event(self.cfg.data_dir, "job_started", job=job, pid=proc.pid, resume=bool(item.get("resume")))
         self.running[job] = {"proc": proc, "out": out, "err": err, "out_path": out_path, "err_path": err_path, "item": item}
@@ -163,7 +208,8 @@ class JobRunner:
         if failed:
             err_lines = [l.strip() for l in run["err_path"].read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
             detail = err_lines[-1] if err_lines else str(result.get("result", "")) or f"mã thoát {code}"
-            append_event(self.cfg.data_dir, "error", job=job, reason=f"Claude Code báo lỗi: {detail}"[:300])
+            append_event(self.cfg.data_dir, "error", job=job, reason=vn_reason(detail))
+            self.pending.pop(job, None)
             return
         if self.pending.get(job):
             self._queue_resume(job, self.pending.pop(job), run["item"]["folder"])
@@ -171,7 +217,7 @@ class JobRunner:
         events = read_events(self.cfg.data_dir)
         state = build_state(events)
         open_q = [q for q in state["questions"] if q["job"] == job]
-        done = any(e.get("type") == "job_done" and e.get("job") == job for e in events)
+        done = any(e.get("type") in ("job_done", "error") and e.get("job") == job for e in events)
         if not open_q and not done:
             append_event(self.cfg.data_dir, "job_done", job=job, auto=True)
 
@@ -225,11 +271,10 @@ class JobRunner:
                     self.queue.append({"job": job, "folder": ev.get("folder", ""), "kind": ev.get("kind", "tt"), "note": ev.get("note", "")})
                     n += 1
                 elif started[job] > ended.get(job, 0):
+                    # Không còn theo dõi được tiến trình cũ (đã chết, hoặc PID bị dùng lại) → coi là mất.
                     pid_file = self.jobs_dir / f"{job}.pid"
-                    pid = int(pid_file.read_text(encoding="utf-8")) if pid_file.is_file() else 0
-                    if not _pid_alive(pid):
-                        append_event(self.cfg.data_dir, "job_run_ended", job=job, exit_code=None, session_id="")
-                        append_event(self.cfg.data_dir, "error", job=job, reason="Mất kết nối khi server khởi động lại")
-                        pid_file.unlink(missing_ok=True)
-                        n += 1
+                    append_event(self.cfg.data_dir, "job_run_ended", job=job, exit_code=None, session_id="")
+                    append_event(self.cfg.data_dir, "error", job=job, reason="Mất kết nối khi server khởi động lại")
+                    pid_file.unlink(missing_ok=True)
+                    n += 1
         return n

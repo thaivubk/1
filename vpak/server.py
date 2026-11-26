@@ -11,6 +11,7 @@ from typing import Callable
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
 from .catalog import AGENTS, ROOMS
@@ -65,9 +66,9 @@ def _default_browse() -> str | None:
     return result.get("path")
 
 
-def _memory(repo: Path) -> dict:
+def _memory(repo: Path, data: Path) -> dict:
     def items(name: str) -> list[str]:
-        f = repo / "tri-nho" / name
+        f = (data if name == "moi-hoc.md" else repo) / "tri-nho" / name
         if not f.is_file():
             return []
         return [l[2:].strip() for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
@@ -82,7 +83,7 @@ def snapshot(cfg: Config) -> dict:
             seen.add(j["folder"])
             recent.append({"path": j["folder"], "name": j["title"], "job": j["id"], "status": j["status"]})
     state.update(catalog={"rooms": ROOMS, "agents": AGENTS}, recent=recent[:RECENT_LIMIT], quota=None,
-                 memory=_memory(cfg.repo_dir))
+                 memory=_memory(cfg.repo_dir, cfg.data_dir))
     return state
 
 
@@ -109,6 +110,7 @@ def create_app(cfg: Config, runner: JobRunner, notifier: Notifier | None = None,
         stop.set()
 
     app = FastAPI(title="Văn phòng Agent Kế toán", lifespan=lifespan)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
     @app.get("/api/state")
     def get_state() -> dict:

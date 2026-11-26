@@ -118,3 +118,24 @@ def test_cli_liet_ke_and_list(tmp_path, capsys, monkeypatch):
     out_dir = tmp_path / "hs" / "KetQua_Agent" / "x"
     assert tools_cli.main(["list-ho-so", "--du-an", "HD-1", "--tu-json", str(rows), "--xuat", str(out_dir)]) == 0
     assert list(out_dir.glob("*.xlsx"))
+
+
+def test_template_traversal_blocked(tmp_path):  # Final #7
+    tpl = _template(tmp_path / "Mau.xlsx")
+    with pytest.raises(ValueError):
+        create_from_template(tpl, tmp_path / "KetQua_Agent" / ".." / "goc.xlsx", 1, [])
+
+
+def test_export_outside_result_dir_blocked(tmp_path, monkeypatch):  # Final #7
+    monkeypatch.setenv("VPAK_JOB_FOLDER", str(tmp_path / "hs"))
+    append_rows(tmp_path, "HD-1", [{"dot": 1, "ten_ho_so": "A"}])
+    with pytest.raises(ValueError):
+        export_to(tmp_path, "HD-1", tmp_path / "hs")
+
+
+def test_append_rows_keeps_items_without_number_and_no_dup_on_rerun(tmp_path):  # Final #6
+    tpl = tmp_path / "L.xlsx"; wb = openpyxl.Workbook(); wb.active.append(["STT", "Danh mục", "Số VB", "Ngày"]); wb.save(tpl)
+    rows = [[1, "Bản vẽ hoàn công", "", ""], [2, "Nhật ký thi công", "", ""], [3, "Bảo lãnh", "BL-1", "01/11"]]
+    append_rows(tmp_path / "d", "P", rows, template=tpl)
+    p = append_rows(tmp_path / "d", "P", rows, template=tpl)
+    assert openpyxl.load_workbook(p).active.max_row == 4

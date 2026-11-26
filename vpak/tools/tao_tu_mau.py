@@ -4,7 +4,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from . import RESULT_DIR
+from . import RESULT_DIR, ensure_result_path
 
 
 def _xlsx(out: Path, header_rows: int, rows: list[list]) -> None:
@@ -49,9 +49,7 @@ def _docx(out: Path, rows: list[list]) -> None:
 
 
 def create_from_template(template: Path, out: Path, header_rows: int, rows: list[list]) -> Path:
-    template, out = Path(template), Path(out)
-    if RESULT_DIR not in out.parts:
-        raise ValueError(f"File kết quả phải nằm trong thư mục {RESULT_DIR}: {out}")
+    template, out = Path(template), ensure_result_path(Path(out))
     if out.resolve() == template.resolve():
         raise ValueError("Không được ghi đè file mẫu")
     ext = template.suffix.lower()

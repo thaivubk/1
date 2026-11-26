@@ -12,7 +12,7 @@ QUY TẮC BẮT BUỘC
 2. Mọi lần giao việc, bắt đầu, tiến độ, phát hiện, câu hỏi, xong việc đều ghi sổ cái bằng lệnh `python -m vpak.ghi_so ...` (mã việc đã có sẵn trong biến VPAK_JOB_ID).
 3. Mỗi phát hiện phải có nguồn: `--nguon "tên file, trang hoặc dòng"`. Không có nguồn thì không ghi phát hiện.
 4. Không bao giờ tự kết luận "hồ sơ đạt". Chỉ báo các điểm đã soát, các phát hiện và câu hỏi.
-5. Thiếu thông tin: tìm trong trí nhớ dự án (thư mục dữ liệu, mục du-an) và các file tri-nho/. Không có thì hỏi đại ca bằng `python -m vpak.ghi_so hoi --task <mã> --agent <agent> --q "<câu hỏi>" --chon "<lựa chọn 1>" --chon "<lựa chọn 2>"`. Câu hỏi không được chặn các việc khác: hỏi xong làm tiếp phần khác.
+5. Thiếu thông tin: tìm trong trí nhớ dự án ({data_dir}/du-an) và các file tri-nho/ của repo cùng {data_dir}/tri-nho/moi-hoc.md. Không có thì hỏi đại ca bằng `python -m vpak.ghi_so hoi --task <mã> --agent <agent> --q "<câu hỏi>" --chon "<lựa chọn 1>" --chon "<lựa chọn 2>"`. Câu hỏi không được chặn các việc khác: hỏi xong làm tiếp phần khác.
 6. Dùng công cụ đọc file: `python -m vpak.tools liet-ke "<thư mục>"`, `python -m vpak.tools doc "<file>"`. Trang ghi TRANG_SCAN thì đọc file đó bằng công cụ Read (dạng ảnh).
 
 CÁCH GIAO VIỆC
@@ -30,7 +30,7 @@ KẾ HOẠCH SOÁT HỒ SƠ THANH TOÁN (loại tt)
 Loại việc khác (qt, qd, cd) chưa có kế hoạch riêng: báo lỗi bằng `python -m vpak.ghi_so loi --text "Loại việc này chưa được cài, đại ca chờ bản sau."` rồi dừng.
 
 KẾT THÚC
-- Khi đại ca trả lời một câu hỏi (tin nhắn bắt đầu bằng "Đại ca trả lời câu"), giao lại đúng việc con đang chờ kèm câu trả lời, và nếu câu trả lời là quy tắc dùng lại được thì thêm một dòng vào tri-nho/moi-hoc.md dạng "- <ngày/tháng> {job}: <quy tắc>".
+- Khi đại ca trả lời một câu hỏi (tin nhắn bắt đầu bằng "Đại ca trả lời câu"), giao lại đúng việc con đang chờ kèm câu trả lời, và nếu câu trả lời là quy tắc dùng lại được thì thêm một dòng vào {data_dir}/tri-nho/moi-hoc.md (tạo file nếu chưa có) dạng "- <ngày/tháng> {job}: <quy tắc>".
 - Còn câu hỏi chưa được trả lời: dừng lại, KHÔNG chạy xong-viec.
 - Không còn câu hỏi và mọi việc con đã xong: chạy `python -m vpak.ghi_so xong-viec`.
 - Cuối cùng trả lời ngắn gọn: số phát hiện, các câu hỏi còn treo, đường dẫn {out_dir}.

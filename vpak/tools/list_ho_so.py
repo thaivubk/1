@@ -7,6 +7,8 @@ from pathlib import Path
 
 import openpyxl
 
+from . import ensure_result_path
+
 HEADER = ["STT", "Đợt", "Tên hồ sơ", "File", "Ghi chú"]
 
 
@@ -41,25 +43,27 @@ def append_rows(data_dir: Path, project: str, rows: list, template: Path | None 
         wb.save(path)
     wb = openpyxl.load_workbook(path)
     ws = wb.active
+    def key_of(values) -> tuple:
+        return tuple("" if v is None else str(v).strip() for v in (list(values) + ["", "", ""])[1:4])
+
     existing = set()
     last = 1
     for i, r in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
-        if any(v not in (None, "") for v in r[:3]):
-            existing.add((str(r[1]), str(r[2])))
+        if any(v not in (None, "") for v in r):
+            existing.add(key_of(r))
             last = i
     for row in rows:
         if isinstance(row, (list, tuple)):
             values = list(row)
-            key = (str(values[1] if len(values) > 1 else ""), str(values[2] if len(values) > 2 else ""))
         else:
-            values = None
-            key = (str(row.get("dot", "")), str(row.get("ten_ho_so", "")))
-        if key in existing:
+            values = [None, row.get("dot", ""), row.get("ten_ho_so", ""), row.get("file", ""), row.get("ghi_chu", "")]
+        key = key_of(values)
+        if any(key) and key in existing:
             continue
         existing.add(key)
         last += 1
-        if values is None:
-            values = [last - 1, row.get("dot", ""), row.get("ten_ho_so", ""), row.get("file", ""), row.get("ghi_chu", "")]
+        if values[0] is None:
+            values[0] = last - 1
         for col, v in enumerate(values, 1):
             ws.cell(row=last, column=col, value=v)
     wb.save(path)
@@ -67,7 +71,7 @@ def append_rows(data_dir: Path, project: str, rows: list, template: Path | None 
 
 
 def export_to(data_dir: Path, project: str, out_dir: Path) -> Path:
-    out_dir = Path(out_dir)
+    out_dir = ensure_result_path(Path(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / f"List_ho_so_{_safe(project)}.xlsx"
     shutil.copyfile(_path(data_dir, project), target)
