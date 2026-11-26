@@ -1,7 +1,9 @@
 """Server dashboard: chỉ nghe 127.0.0.1, phục vụ giao diện và API."""
 from __future__ import annotations
 
+import json
 import os
+import time
 import sys
 import threading
 from contextlib import asynccontextmanager
@@ -75,6 +77,20 @@ def _memory(repo: Path, data: Path) -> dict:
     return {"loi": items("loi-hay-gap.md"), "sep": items("sep-hay-xem.md"), "moi": items("moi-hoc.md")}
 
 
+QUOTA_MAX_AGE = 7 * 86400
+
+
+def read_quota(data_dir: Path) -> dict | None:
+    """Hạn mức token do status line của Claude Code ghi lại; quá 7 ngày thì bỏ."""
+    try:
+        q = json.loads((Path(data_dir) / "quota.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if time.time() - float(q.get("at", 0)) > QUOTA_MAX_AGE:
+        return None
+    return q
+
+
 def snapshot(cfg: Config) -> dict:
     state = build_state(read_events(cfg.data_dir))
     recent, seen = [], set()
@@ -82,7 +98,7 @@ def snapshot(cfg: Config) -> dict:
         if j["folder"] and j["folder"] not in seen:
             seen.add(j["folder"])
             recent.append({"path": j["folder"], "name": j["title"], "job": j["id"], "status": j["status"]})
-    state.update(catalog={"rooms": ROOMS, "agents": AGENTS}, recent=recent[:RECENT_LIMIT], quota=None,
+    state.update(catalog={"rooms": ROOMS, "agents": AGENTS}, recent=recent[:RECENT_LIMIT], quota=read_quota(cfg.data_dir),
                  memory=_memory(cfg.repo_dir, cfg.data_dir))
     return state
 

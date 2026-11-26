@@ -1,6 +1,30 @@
 {
   "hooks": {
-    "SubagentStart": [{"matcher": "*", "hooks": [{"type": "command", "command": "python -m vpak.hook"}]}],
-    "SubagentStop": [{"matcher": "*", "hooks": [{"type": "command", "command": "python -m vpak.hook"}]}]
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m vpak.hook"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m vpak.hook"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "python -m vpak.statusline"
   }
 }
