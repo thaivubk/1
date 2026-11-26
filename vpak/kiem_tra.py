@@ -18,14 +18,20 @@ PACKAGES = ["fastapi", "uvicorn", "openpyxl", "pdfplumber", "docx"]
 
 
 def _claude(cfg: Config) -> tuple[bool, str]:
-    try:
-        r = subprocess.run(cfg.claude_cmd + ["--version"], capture_output=True, text=True, timeout=30)
-    except (FileNotFoundError, OSError):
-        return False, "Chưa cài Claude Code hoặc lệnh claude chưa có trong PATH"
-    except subprocess.TimeoutExpired:
-        return False, "Lệnh claude --version không trả lời"
-    out = (r.stdout or r.stderr).strip().splitlines()
-    return r.returncode == 0, out[0] if out else f"mã thoát {r.returncode}"
+    import tempfile
+    with tempfile.TemporaryFile() as out:  # ghi ra file, tránh treo khi claude.cmd giữ ống dẫn trên Windows
+        try:
+            proc = subprocess.Popen(cfg.claude_cmd + ["--version"], stdin=subprocess.DEVNULL, stdout=out, stderr=out)
+        except (FileNotFoundError, OSError):
+            return False, "Chưa cài Claude Code hoặc lệnh claude chưa có trong PATH"
+        try:
+            code = proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            return False, "Lệnh claude --version không trả lời sau 30 giây"
+        out.seek(0)
+        lines = out.read().decode("utf-8", errors="replace").strip().splitlines()
+    return code == 0, lines[0] if lines else f"mã thoát {code}"
 
 
 def _port_free(port: int) -> bool:
@@ -86,8 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--gui-thu", action="store_true", help="Gửi tin thử qua Telegram")
     a = p.parse_args(argv)
     cfg = load_config()
+    print("KIỂM TRA MÁY CHO VĂN PHÒNG AGENT (mất tối đa 1 phút)...", flush=True)
     results = checks(cfg, os.environ)
-    print("KIỂM TRA MÁY CHO VĂN PHÒNG AGENT")
     for name, ok, note, req in results:
         print(f"{'✔' if ok else '✘'} {name}{' (bắt buộc)' if req and not ok else ''}: {note}")
     if a.gui_thu:
