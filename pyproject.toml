@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vpak"
+version = "0.1.0"
+description = "Văn phòng Agent Kế toán: bộ agent Claude Code và dashboard chạy trên laptop"
+requires-python = ">=3.10"
+dependencies = ["fastapi", "uvicorn", "openpyxl", "pdfplumber", "python-docx"]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx", "fpdf2"]
+
+[tool.setuptools.packages.find]
+include = ["vpak*"]
+
+[tool.setuptools.package-data]
+vpak = ["web/*.html", "web/vendor/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
