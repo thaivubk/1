@@ -65,6 +65,15 @@ def _default_browse() -> str | None:
     return result.get("path")
 
 
+def _memory(repo: Path) -> dict:
+    def items(name: str) -> list[str]:
+        f = repo / "tri-nho" / name
+        if not f.is_file():
+            return []
+        return [l[2:].strip() for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
+    return {"loi": items("loi-hay-gap.md"), "sep": items("sep-hay-xem.md"), "moi": items("moi-hoc.md")}
+
+
 def snapshot(cfg: Config) -> dict:
     state = build_state(read_events(cfg.data_dir))
     recent, seen = [], set()
@@ -72,7 +81,8 @@ def snapshot(cfg: Config) -> dict:
         if j["folder"] and j["folder"] not in seen:
             seen.add(j["folder"])
             recent.append({"path": j["folder"], "name": j["title"], "job": j["id"], "status": j["status"]})
-    state.update(catalog={"rooms": ROOMS, "agents": AGENTS}, recent=recent[:RECENT_LIMIT], quota=None)
+    state.update(catalog={"rooms": ROOMS, "agents": AGENTS}, recent=recent[:RECENT_LIMIT], quota=None,
+                 memory=_memory(cfg.repo_dir))
     return state
 
 

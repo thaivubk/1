@@ -70,3 +70,8 @@ def test_browse(setup):
 
 def test_index_served(setup):
     assert "Văn phòng Agent" in setup[0].get("/").text
+
+
+def test_state_has_memory(setup):
+    mem = setup[0].get("/api/state").json()["memory"]
+    assert len(mem["loi"]) >= 6 and len(mem["sep"]) >= 4 and isinstance(mem["moi"], list)
