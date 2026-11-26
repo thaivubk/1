@@ -18,7 +18,8 @@ def _path(data_dir: Path, project: str) -> Path:
     return Path(data_dir) / "du-an" / _safe(project) / "list_ho_so.xlsx"
 
 
-def append_rows(data_dir: Path, project: str, rows: list[dict], template: Path | None = None) -> Path:
+def append_rows(data_dir: Path, project: str, rows: list, template: Path | None = None) -> Path:
+    """rows: dict (5 cột chuẩn) hoặc list giá trị đúng thứ tự cột của mẫu list hồ sơ."""
     path = _path(data_dir, project)
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
@@ -47,12 +48,18 @@ def append_rows(data_dir: Path, project: str, rows: list[dict], template: Path |
             existing.add((str(r[1]), str(r[2])))
             last = i
     for row in rows:
-        key = (str(row.get("dot", "")), str(row.get("ten_ho_so", "")))
+        if isinstance(row, (list, tuple)):
+            values = list(row)
+            key = (str(values[1] if len(values) > 1 else ""), str(values[2] if len(values) > 2 else ""))
+        else:
+            values = None
+            key = (str(row.get("dot", "")), str(row.get("ten_ho_so", "")))
         if key in existing:
             continue
         existing.add(key)
         last += 1
-        values = [last - 1, row.get("dot", ""), row.get("ten_ho_so", ""), row.get("file", ""), row.get("ghi_chu", "")]
+        if values is None:
+            values = [last - 1, row.get("dot", ""), row.get("ten_ho_so", ""), row.get("file", ""), row.get("ghi_chu", "")]
         for col, v in enumerate(values, 1):
             ws.cell(row=last, column=col, value=v)
     wb.save(path)
