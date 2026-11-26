@@ -10,8 +10,8 @@ Dành cho đại ca, làm trên laptop cơ quan (Windows). Làm lần lượt t�
 
 ## 2. Cài đặt (một lần)
 
-1. Chạy `powershell -ExecutionPolicy Bypass -File scripts\cai_dat.ps1`.
-2. Script tạo môi trường Python riêng, cài thư viện, tạo file `.env`, rồi in bảng kiểm tra máy.
+1. Bấm đúp file `CAI_DAT.cmd` trong thư mục `VanPhongAgent` (hoặc chạy `powershell -ExecutionPolicy Bypass -File scripts\cai_dat.ps1`).
+2. Script tự cài Python riêng, thư viện, Claude Code dòng lệnh, tạo file `.env` và biểu tượng **Văn phòng Agent** trên màn hình, rồi in bảng kiểm tra máy. Lần đầu mở PowerShell gõ `claude` rồi `/login` để đăng nhập tài khoản Claude công ty.
 3. Mở `.env` bằng Notepad và điền:
    - `TELEGRAM_BOT_TOKEN`: token bot Telegram dùng để báo kết quả.
    - `TELEGRAM_CHAT_ID`: mã cuộc trò chuyện của đại ca với bot.
@@ -22,7 +22,7 @@ File `.env` chứa khóa bí mật, không gửi cho ai và không đưa lên Gi
 
 ## 3. Mỗi ngày làm việc
 
-1. Mở dashboard: `powershell -ExecutionPolicy Bypass -File scripts\chay.ps1`. Trình duyệt tự mở `http://127.0.0.1:8765`. Giữ cửa sổ PowerShell này mở trong lúc làm việc.
+1. Bấm đúp biểu tượng **Văn phòng Agent** trên màn hình. Trình duyệt tự mở `http://127.0.0.1:8765`. Giữ cửa sổ PowerShell này mở trong lúc làm việc.
 2. Muốn ra lệnh qua Telegram: mở thêm một cửa sổ PowerShell, chạy `powershell -ExecutionPolicy Bypass -File scripts\telegram.ps1`.
 
 ## 4. Giao việc
